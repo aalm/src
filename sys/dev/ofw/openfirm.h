@@ -55,6 +55,7 @@ int OF_setprop(int, char *, const void *, int);
 int OF_nextprop(int, char *, void *);
 int OF_finddevice(char *name);
 int OF_is_compatible(int, const char *);
+int OF_is_ncompatible(int, const char **, int);
 int OF_instance_to_path(int ihandle, char *buf, int buflen);
 int OF_package_to_path(int phandle, char *buf, int buflen);
 int OF_call_method_1(char *method, int ihandle, int nargs, ...);

@@ -917,6 +917,18 @@ OF_is_compatible(int handle, const char *name)
 }
 
 int
+OF_is_ncompatible(int handle, const char **name, int nelem)
+{
+	void *node = (char *)tree.header + handle;
+	int i;
+
+	for (i = 0; i < nelem; i++)
+		if (fdt_is_compatible(node, *name++))
+			return 1;
+	return 0;
+}
+
+int
 OF_getindex(int handle, const char *entry, const char *prop)
 {
 	char *names;
