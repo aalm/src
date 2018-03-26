@@ -28,8 +28,12 @@
 #include <dev/ic/comvar.h>
 #include <dev/cons.h>
 
-/* pick up armv7_a4x_bs_tag */
+/* pick up _a4x_bs_tag */
+#ifdef __armv7__
 #include <arch/arm/armv7/armv7var.h>
+#else
+#include <arm64/arm64/arm64var.h>
+#endif
 
 #include <dev/ofw/fdt.h>
 #include <dev/ofw/openfirm.h>
@@ -41,9 +45,6 @@
 int	com_fdt_match(struct device *, void *, void *);
 void	com_fdt_attach(struct device *, struct device *, void *);
 int	com_fdt_intr_designware(void *);
-
-extern int comcnspeed;
-extern int comcnmode;
 
 struct com_fdt_softc {
 	struct com_softc	 sc;
@@ -63,17 +64,29 @@ struct consdev com_fdt_cons = {
 	NODEV, CN_LOWPRI
 };
 
+const char *com_fdt_compat[] = {
+	"brcm,bcm2835-aux-uart",
+	"snps,dw-apb-uart",
+#ifdef __armv7__
+	"ti,omap3-uart",
+	"ti,omap4-uart",
+#endif
+};
+
 void
 com_fdt_init_cons(void)
 {
 	struct fdt_reg reg;
 	void *node;
+	int i;
 
-	if ((node = fdt_find_cons("brcm,bcm2835-aux-uart")) == NULL &&
-	    (node = fdt_find_cons("snps,dw-apb-uart")) == NULL &&
-	    (node = fdt_find_cons("ti,omap3-uart")) == NULL &&
-	    (node = fdt_find_cons("ti,omap4-uart")) == NULL)
-			return;
+	for (i = 0; i < nitems(com_fdt_compat); i++) {
+		node = fdt_find_cons(com_fdt_compat[i]);
+		if (node != NULL)
+			break;
+	}
+	if (node == NULL)
+		return;
 	if (fdt_get_reg(node, 0, &reg))
 		return;
 
@@ -85,24 +98,28 @@ com_fdt_init_cons(void)
 	 * comcnattach() does by doing the minimal setup here.
 	 */
 
-	comconsiot = &armv7_a4x_bs_tag;
+	comconsiot = fdt_cons_bs_tag;
 	if (bus_space_map(comconsiot, reg.addr, reg.size, 0, &comconsioh))
 		return;
 
+#ifdef __armv7__
+	extern int comcnspeed;
+	extern int comcnmode;
+
 	comconsrate = comcnspeed;
 	comconscflag = comcnmode;
+#else
+	comconsrate = B115200;
+#endif
 	cn_tab = &com_fdt_cons;
 }
 
 int
 com_fdt_match(struct device *parent, void *match, void *aux)
 {
-	struct fdt_attach_args *faa = aux;
+	int node = ((struct fdt_attach_args *)aux)->fa_node;
 
-	return (OF_is_compatible(faa->fa_node, "brcm,bcm2835-aux-uart") ||
-	    OF_is_compatible(faa->fa_node, "snps,dw-apb-uart") ||
-	    OF_is_compatible(faa->fa_node, "ti,omap3-uart") ||
-	    OF_is_compatible(faa->fa_node, "ti,omap4-uart"));
+	return OF_is_ncompatible(node, com_fdt_compat, nitems(com_fdt_compat));
 }
 
 void
@@ -131,9 +148,13 @@ com_fdt_attach(struct device *parent, struct device *self, void *aux)
 	 * XXX This sucks.  We need to get rid of the a4x bus tag
 	 * altogether.  For this we will need to change com(4).
 	 */
-	sc->sc_iot = armv7_a4x_bs_tag;
-	sc->sc_iot.bs_cookie = faa->fa_iot->bs_cookie;
+	sc->sc_iot = *fdt_cons_bs_tag;
+#ifdef __armv7__
 	sc->sc_iot.bs_map = faa->fa_iot->bs_map;
+#else
+	sc->sc_iot.bus_private = faa->fa_iot->bus_private;
+	sc->sc_iot._space_map = faa->fa_iot->_space_map;
+#endif
 
 	sc->sc.sc_iot = &sc->sc_iot;
 	sc->sc.sc_iobase = faa->fa_reg[0].addr;
@@ -142,10 +163,11 @@ com_fdt_attach(struct device *parent, struct device *self, void *aux)
 
 	if (OF_is_compatible(faa->fa_node, "snps,dw-apb-uart"))
 		intr = com_fdt_intr_designware;
-
-	if (OF_is_compatible(faa->fa_node, "ti,omap3-uart") ||
+#ifdef __armv7__
+	else if (OF_is_compatible(faa->fa_node, "ti,omap3-uart") ||
 	    OF_is_compatible(faa->fa_node, "ti,omap4-uart"))
 		sc->sc.sc_uarttype = COM_UART_TI16750;
+#endif
 
 	if (stdout_node == faa->fa_node) {
 		SET(sc->sc.sc_hwflags, COM_HW_CONSOLE);

@@ -116,10 +116,6 @@ include "dev/sdmmc/files.sdmmc"
 # Machine-independent FDT drivers
 include "dev/fdt/files.fdt"
 
-# Console related stuff
-attach	com at fdt with com_fdt
-file	arch/arm64/dev/com_fdt.c		com_fdt
-
 # ARM PrimeCell PL011 UART
 device	pluart
 attach	pluart at fdt

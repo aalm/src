@@ -86,6 +86,10 @@ file	dev/fdt/virtio_mmio.c		virtio_mmio
 attach	ahci at fdt with ahci_fdt
 file	dev/fdt/ahci_fdt.c		ahci_fdt
 
+# NS16550 compatible serial ports
+attach	com at fdt with com_fdt
+file	dev/fdt/com_fdt.c		com_fdt
+
 attach	dwge at fdt with dwge_fdt
 file	dev/fdt/if_dwge_fdt.c		dwge_fdt
 

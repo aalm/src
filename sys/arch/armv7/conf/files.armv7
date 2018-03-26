@@ -83,10 +83,6 @@ include "arch/armv7/vexpress/files.vexpress"
 include "arch/armv7/broadcom/files.broadcom"
 include "arch/armv7/marvell/files.marvell"
 
-# Console related stuff
-attach	com at fdt with com_fdt
-file	arch/armv7/dev/com_fdt.c		com_fdt
-
 # ARM PrimeCell PL011 UART
 device	pluart
 attach	pluart at fdt
