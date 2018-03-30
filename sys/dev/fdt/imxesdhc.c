@@ -433,6 +433,8 @@ imxesdhc_attach(struct device *parent, struct device *self, void *aux)
 	
 	if (caps & SDHC_HOST_CTRL_CAP_HSS)
 		saa.caps |= SMC_CAPS_MMC_HIGHSPEED;
+	if (caps & SDHC_HOST_CTRL_CAP_HSS)
+		saa.caps |= SMC_CAPS_SD_HIGHSPEED;
 
 	width = OF_getpropint(sc->sc_node, "bus-width", 1);
 	if (width >= 8)
